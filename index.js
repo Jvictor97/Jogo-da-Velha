@@ -8,6 +8,11 @@ const OBJECTIVES = Object.freeze({
     UTILITY: 1
 });
 
+const PLAYERS = Object.freeze({
+    MAX: 0,
+    MIN: 1
+})
+
 // Código MIN-MAX
 
 class State {
@@ -129,36 +134,6 @@ function result(state, action, symbol = SYMBOL_MAP['O']) {
     return newState;
 }
 
-function minValue(state) {
-    if(terminalTest(state))
-        return utility(state);
-
-    let minUtility = null;
-    const actions = getPossibleActions(state);
-
-    for(let i = 0; i < actions.length; i++){
-        const action = actions[i];
-
-        minUtility = min(minUtility, maxValue(result(state, action, SYMBOL_MAP['X'])));
-    }
-    
-    return minUtility;  
-}
-
-function maxValue(state) {
-    if(terminalTest(state))
-        return utility(state);
-
-    let maxUtility = null;
-    const actions = getPossibleActions(state);
-
-    for(let i = 0; i < actions.length; i++){
-        const action = actions[i];
-
-        maxUtility = max(maxUtility, minValue(result(state, action, SYMBOL_MAP['O'])));
-    }
-}
-
 function min(currentMin, utility){
     return currentMin === null || currentMin > utility ? utility : currentMin;
 }
@@ -167,23 +142,42 @@ function max(currentMax, utility){
     return currentMax === null || currentMax < utility ? utility : currentMax;
 }
 
-function minimax(state) {
+function minimax(state, player, returnAction = false) {
+    if(terminalTest(state))
+        return utility(state)
+
     const actions = getPossibleActions(state);
-    console.log('possible actions', actions);
-    let maxUtility = null;
-    let maxUtilityActionIndex = null;
+    let bestActionIndex = 0;
+    
+    if(player === PLAYERS.MAX){
+        let maxUtility = null;
 
-    for(let i = 0; i < actions.length; i++){
-        const action = actions[i];
-        const utility = minValue(result(state, action))
+        for(let i = 0; i < actions.length; i++){
+            const action = actions[i];
+            const newState = result(state, action, SYMBOL_MAP['O']);
+            const utility = minimax(newState, PLAYERS.MIN);
 
-        if(maxUtility === null || utility > maxUtility) {
-            maxUtility = utility
-            maxUtilityActionIndex = i;
+            const previousUtility = maxUtility;
+            maxUtility = max(maxUtility, utility);
+
+            if(previousUtility !== maxUtility) // encontrou uma ação melhor, atualiza o índice
+                bestActionIndex = i;
         }
+
+        return returnAction ? actions[bestActionIndex] : maxUtility;
     }
 
-    return actions[maxUtilityActionIndex];
+    if(player === PLAYERS.MIN) {
+        let minUtility = null;
+
+        for(let i = 0; i < actions.length; i++){
+            const action = actions[i];
+            const newState = result(state, action, SYMBOL_MAP['X']);
+            const utility = minimax(newState, PLAYERS.MAX);
+            minUtility = min(minUtility, utility);
+        }
+        return minUtility;
+    }
 }
 
 // Operações no tabuleiro
@@ -219,12 +213,13 @@ function setup() {
         if($(this).html() === '') {
             // Marca a entrada do usuário no tabuleiro
             state.markOnBoard({ row, column }, SYMBOL_MAP['X'])
+
             // Exibe no tabuleiro (visual) o símbolo clicado
             $(this).html('X');
             
             // Ação do computador é obtida pelo algoritmo MINIMAX
-            const action = minimax(state);
-            console.log('action', action);
+            const action = minimax(state, PLAYERS.MAX, true);
+
             // Setando a ação no state
             state.markOnBoard(action);
 

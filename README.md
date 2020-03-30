@@ -1,0 +1,1 @@
+# Exercício 2 - Algoritmo MINMAX para o Jogo da Velha

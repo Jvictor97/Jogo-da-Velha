@@ -5,12 +5,24 @@ const SYMBOL_MAP = Object.freeze({
 
 const OBJECTIVES = Object.freeze({
     TERMINAL_TEST: 0,
-    UTILITY: 1
+    UTILITY: 1,
+    GET_POSITION: 2
 });
 
 const PLAYERS = Object.freeze({
     MAX: 0,
     MIN: 1
+})
+
+const LINE_MAP = Object.freeze({
+    horizontal_0: { x1: 0, x2: 300, y1: 50, y2: 50 },
+    horizontal_1: { x1: 0, x2: 300, y1: 150, y2: 150 },
+    horizontal_2: { x1: 0, x2: 300, y1: 250, y2: 250 },
+    vertical_0: { x1: 50, x2: 50, y1: 0, y2: 300 },
+    vertical_1: { x1: 150, x2: 150, y1: 0, y2: 300 },
+    vertical_2: { x1: 250, x2: 250, y1: 0, y2: 300 },
+    diagonal_principal: { x1: 0, x2: 300, y1: 0, y2: 300},
+    diagonal_secundaria: { x1: 0, x2: 300, y1: 300, y2: 0 }
 })
 
 // Código MIN-MAX
@@ -59,38 +71,58 @@ function evaluateBoard(objective, state) {
     for(let i = 0; i < 3; i++){
         // Verifica o tabuleiro na horizontal
         if (board[i][0] !== null && board[i][0] === board[i][1] && board[i][1] === board[i][2]){ // Verifica se os 3 elementos da linha são iguais
-            if (objective === OBJECTIVES.TERMINAL_TEST) 
-                return true;
-            else {
-                return board[i][0] === SYMBOL_MAP['O'] ? 1 : -1;
+            switch(objective){
+                case OBJECTIVES.TERMINAL_TEST:
+                    return true;
+                case OBJECTIVES.UTILITY:
+                    return board[i][0] === SYMBOL_MAP['O'] ? 1 : -1;
+                case OBJECTIVES.GET_POSITION:
+                    return `horizontal_${i}`
+                default:
+                    return null;
             }
         }
 
         // Verifica o tabuleiro na vertical
         if (board[0][i] !== null && board[0][i] === board[1][i] && board[1][i] === board[2][i]){ // Verifica se os 3 elementos da coluna são iguais
-            if (objective === OBJECTIVES.TERMINAL_TEST) 
-                return true;
-            else {
-                return board[0][i] === SYMBOL_MAP['O'] ? 1 : -1;
+            switch(objective){
+                case OBJECTIVES.TERMINAL_TEST:
+                    return true;
+                case OBJECTIVES.UTILITY:
+                    return board[0][i] === SYMBOL_MAP['O'] ? 1 : -1;
+                case OBJECTIVES.GET_POSITION:
+                    return `vertical_${i}`
+                default:
+                    return null;
             }
         }
     }
 
     // Verifica a diagonal principal 
     if (board[0][0] !== null && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
-        if (objective === OBJECTIVES.TERMINAL_TEST) 
-            return true;
-        else {
-            return board[0][0] === SYMBOL_MAP['O'] ? 1 : -1;
+        switch(objective){
+            case OBJECTIVES.TERMINAL_TEST:
+                return true;
+            case OBJECTIVES.UTILITY:
+                return board[0][0] === SYMBOL_MAP['O'] ? 1 : -1;
+            case OBJECTIVES.GET_POSITION:
+                return 'diagonal_principal';
+            default:
+                return null;
         }
     }
 
     // Verifica a diagonal secundária
     if (board[0][2] !== null && board[0][2] === board[1][1] && board[1][1] === board[2][0]){
-        if (objective === OBJECTIVES.TERMINAL_TEST) 
-            return true;
-        else {
-            return board[0][2] === SYMBOL_MAP['O'] ? 1 : -1;
+        switch(objective){
+            case OBJECTIVES.TERMINAL_TEST:
+                return true;
+            case OBJECTIVES.UTILITY:
+                return board[0][2] === SYMBOL_MAP['O'] ? 1 : -1;
+            case OBJECTIVES.GET_POSITION:
+                return 'diagonal_secundaria';
+            default:
+                return null;
         }
     }
 
@@ -108,11 +140,16 @@ function evaluateBoard(objective, state) {
 
     // Se todas as posições estão preenchidas o estado é um empate
     if(positionsFilled === 9) {
-        if(objective === OBJECTIVES.TERMINAL_TEST)
-            return true;
-        
-        if(objective === OBJECTIVES.UTILITY)
-            return 0;
+        switch(objective){
+            case OBJECTIVES.TERMINAL_TEST:
+                return true;
+            case OBJECTIVES.UTILITY:
+                return 0;
+            case OBJECTIVES.GET_POSITION:
+                return null
+            default:
+                return null;
+        }
     }
 
     // Caso contrário, o estado não é um terminal
@@ -218,30 +255,50 @@ function setup() {
     
                 // Exibe no tabuleiro (visual) o símbolo clicado
                 $(this).html('X');
-                
-                // Ação do computador é obtida pelo algoritmo MINIMAX
-                const action = minimax(state, PLAYERS.MAX, true);
-    
-                // Setando a ação no state
-                state.markOnBoard(action);
-    
-                // Calcula a célula a ser marcada no HTML
-                const cellPosition = action.row * 3 + action.column;
-    
-                // Exibindo a jogada do computador
-                $('td').eq(cellPosition).html('O');
 
-                // Após a jogada do computador, verifica se o jogo acabou
+                // Após a jogada do usuário, verifica se o jogo acabou
                 gameOver = terminalTest(state);
+                
+                if(!gameOver){ // Se o jogo não acabou, o computador joga
+                    // Ação do computador é obtida pelo algoritmo MINIMAX
+                    const action = minimax(state, PLAYERS.MAX, true);
+        
+                    // Setando a ação no state
+                    state.markOnBoard(action);
+        
+                    // Calcula a célula a ser marcada no HTML
+                    const cellPosition = action.row * 3 + action.column;
+        
+                    // Exibindo a jogada do computador
+                    $('td').eq(cellPosition).html('O');
 
-                if(gameOver) {
+                    // Após a jogada do computador, verifica se o jogo acabou
+                    gameOver = terminalTest(state);
+                }
+
+                // Se o jogo acabou (após a jogada do usuário ou do computador) exibe o resultado
+                if(gameOver) { 
                     const finalStateUtility = utility(state);
+                    const linePositionKey = evaluateBoard(OBJECTIVES.GET_POSITION, state);
+
+                    if(linePositionKey !== null) {
+                        const linePosition = LINE_MAP[linePositionKey];
+
+                        $('line')[0].setAttribute('x1', linePosition.x1);
+                        $('line')[0].setAttribute('x2', linePosition.x2);
+                        $('line')[0].setAttribute('y1', linePosition.y1);
+                        $('line')[0].setAttribute('y2', linePosition.y2);
+                        $('svg').css('display', 'inline-block');
+                    }
 
                     if(finalStateUtility === -1) {
                         $('#winner').show();
                     } 
-                    else {
+                    else if (finalStateUtility === 1) {
                         $('#looser').show();
+                    }
+                    else {
+                        $('#draw').show();
                     }
                 }
             } else {
@@ -259,6 +316,8 @@ function setup() {
             $(this).html('');
             $('#winner').hide();
             $('#looser').hide();
+            $('#draw').hide();
+            $('svg').css('display', 'none');
         });
         state.reset();
 	});

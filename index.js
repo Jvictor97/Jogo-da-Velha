@@ -180,8 +180,6 @@ function minimax(state, player, returnAction = false) {
     }
 }
 
-// Operações no tabuleiro
-
 // Verifica o tabuleiro e retorna uma lista com as posições vazias
 function getPossibleActions(state) {
     const board = state.getValue();
@@ -202,6 +200,8 @@ $(() => {
 	setup();
 });
 
+let gameOver = false;
+
 function setup() {
 	$('td').click(function() {
 		const row = $(this)
@@ -209,34 +209,56 @@ function setup() {
 			.index();
 
         const column = $(this).index();
-        
-        if($(this).html() === '') {
-            // Marca a entrada do usuário no tabuleiro
-            state.markOnBoard({ row, column }, SYMBOL_MAP['X'])
 
-            // Exibe no tabuleiro (visual) o símbolo clicado
-            $(this).html('X');
-            
-            // Ação do computador é obtida pelo algoritmo MINIMAX
-            const action = minimax(state, PLAYERS.MAX, true);
+        // Se o jogo não acabou permite que o jogador marque uma posição
+        if(!gameOver) {
+            if($(this).html() === '') {
+                // Marca a entrada do usuário no tabuleiro
+                state.markOnBoard({ row, column }, SYMBOL_MAP['X'])
+    
+                // Exibe no tabuleiro (visual) o símbolo clicado
+                $(this).html('X');
+                
+                // Ação do computador é obtida pelo algoritmo MINIMAX
+                const action = minimax(state, PLAYERS.MAX, true);
+    
+                // Setando a ação no state
+                state.markOnBoard(action);
+    
+                // Calcula a célula a ser marcada no HTML
+                const cellPosition = action.row * 3 + action.column;
+    
+                // Exibindo a jogada do computador
+                $('td').eq(cellPosition).html('O');
 
-            // Setando a ação no state
-            state.markOnBoard(action);
+                // Após a jogada do computador, verifica se o jogo acabou
+                gameOver = terminalTest(state);
 
-            // Calcula a célula a ser marcada no HTML
-            const cellPosition = action.row * 3 + action.column;
+                if(gameOver) {
+                    const finalStateUtility = utility(state);
 
-            // Exibindo a jogada do computador
-            $('td').eq(cellPosition).html('O');
-
-        } else {
-            alert('Posição inválida!');
+                    if(finalStateUtility === -1) {
+                        $('#winner').show();
+                    } 
+                    else {
+                        $('#looser').show();
+                    }
+                }
+            } else {
+                alert('Posição inválida!');
+            }
+        }
+        else { // Se o jogo já acabou exibe erro
+            alert('O jogo acabou!');
         }
 	});
 
 	$('button').click(function() {
 		$('td').each(function() {
-			$(this).html('');
+            gameOver = false;
+            $(this).html('');
+            $('#winner').hide();
+            $('#looser').hide();
         });
         state.reset();
 	});

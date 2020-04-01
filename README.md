@@ -6,6 +6,7 @@ Para facilitar a interação com o usuário foi desenvolvido uma interface simpl
 
 1. Faça o clone ou download desse repositório
 2. Abra o arquivo `index.html` dentro da pasta raiz do projeto
+
 **Obs:** verifique que o seu navegador está habilitado para a execução de código Javascript
 
 Desenvolvido por [João Souza](https://github.com/Jvictor97)
